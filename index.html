@@ -127,7 +127,7 @@ body.docked .app{padding-bottom:calc(var(--kbh) + env(safe-area-inset-bottom,0px
     </div>
   </header>
 
-  <p class="task" id="task">Verbinde <b>Haus</b> mit <b>Bogen</b>. Jedes Wort bildet mit dem nächsten ein zusammengesetztes Wort.</p>
+  <p class="task" id="task">Jedes Wort bildet mit dem nächsten ein zusammengesetztes Wort.</p>
 
   <div class="chain" id="chain" aria-live="polite"></div>
 
@@ -145,7 +145,7 @@ body.docked .app{padding-bottom:calc(var(--kbh) + env(safe-area-inset-bottom,0px
   <div class="card" role="dialog" aria-labelledby="helpT">
     <h2 id="helpT">So geht's</h2>
     <p>Jeden Tag gibt es eine neue Kette aus sieben Wörtern. Erstes und letztes Wort stehen fest. Jedes Wort ergibt zusammen mit dem nächsten ein echtes deutsches Kompositum.</p>
-    <div class="ex">Haus <i>→ Haustür →</i> Tür <i>→ Türschloss →</i> Schloss</div>
+    <div class="ex">Kirsch <i>→ Kirschkern →</i> Kern <i>→ Kernseife →</i> Seife</div>
     <p>Der Anfangsbuchstabe ist vorgegeben. Jeder Fehlversuch deckt einen weiteren Buchstaben auf.</p>
     <div class="legend">
       <div class="sw" style="background:var(--ok)"></div><div>Auf Anhieb gelöst</div>
@@ -158,22 +158,7 @@ body.docked .app{padding-bottom:calc(var(--kbh) + env(safe-area-inset-bottom,0px
 </div>
 
 <script>
-const CHAINS=[
- ["Haus","Tür","Schloss","Park","Platz","Regen","Bogen"],
- ["Schnee","Ball","Spiel","Zeug","Haus","Tier","Arzt"],
- ["Feuer","Werk","Bank","Konto","Stand","Punkt","Sieg"],
- ["Kleider","Schrank","Wand","Uhr","Zeit","Reise","Büro"],
- ["Hand","Werk","Stoff","Wechsel","Geld","Schein","Werfer"],
- ["Meer","Wasser","Fall","Obst","Korb","Ball","Kleid"],
- ["Kaffee","Haus","Arzt","Praxis","Test","Fahrt","Wind"],
- ["Rot","Gold","Fisch","Markt","Platz","Mangel","Ware"],
- ["Guss","Eisen","Bahn","Hof","Tor","Bogen","Lampe"],
- ["Apfel","Baum","Stamm","Tisch","Tennis","Platz","Wart"],
- ["Winter","Reifen","Wechsel","Kurs","Buch","Laden","Tür"],
- ["Sand","Kasten","Kuchen","Blech","Dach","Boden","See"],
- ["Nacht","Zug","Führer","Haus","Tür","Rahmen","Programm"],
- ["Kopf","Kissen","Schlacht","Feld","Weg","Rand","Stein"]
-];
+const CHAINS=(()=>{const k=[107,119,23,75,101,116,116,101,33,156,50,48,50,54,5,87,111,114,116],b=atob("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"),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i)^k[i%k.length]^((i*7)&255);return JSON.parse(new TextDecoder().decode(u))})();
 const LAUNCH=new Date(2026,9,27);
 const U=s=>s.toUpperCase().replace(/ß/g,"SS");
 const $=id=>document.getElementById(id);
@@ -200,7 +185,9 @@ if(!S||S.day!==dayKey){S=fresh()}
 const save=()=>{if(!PRACTICE)store.set("kw-state",S)};
 function startPractice(){
   PRACTICE=true;
-  let i;do{i=Math.floor(Math.random()*CHAINS.length)}while(i===todayIdx&&CHAINS.length>1);
+  const past=num-1>=CHAINS.length?CHAINS.map((_,k)=>k).filter(k=>k!==todayIdx):CHAINS.map((_,k)=>k).slice(0,todayIdx);
+  const pool=past.length>=2?past:CHAINS.map((_,k)=>k).filter(k=>k!==todayIdx).reverse().slice(0,10);
+  const i=pool[Math.floor(Math.random()*pool.length)];
   words=CHAINS[i];W=words.map(U);S=fresh();
   $("resultWrap").hidden=true;$("resultWrap").innerHTML="";
   $("kb").hidden=false;$("tools").hidden=false;$("status").hidden=false;
