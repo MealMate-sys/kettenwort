@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kettenwort – das tägliche Komposita-Rätsel</title>
+<meta name="description" content="Jeden Tag eine neue Wortkette: Verbinde zwei Wörter über zusammengesetzte deutsche Wörter. Kostenlos im Browser.">
+<meta property="og:title" content="Kettenwort">
+<meta property="og:description" content="Das tägliche Komposita-Rätsel. Schaffst du die perfekte Kette?">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#14213a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23f6c700'/%3E%3Ctext x='16' y='23' font-size='19' font-family='Arial' font-weight='900' text-anchor='middle' fill='%2314213a'%3EK%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+*{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}
+.foot{display:flex;gap:16px;justify-content:center;font-size:12px;padding-bottom:6px}.foot a{color:var(--muted)}
+/* Layout: one narrow phone-first column — header, the word chain as linked tile rows, on-screen keyboard docked below */
+:root{
+  --bg:#eef1f0; --surface:#ffffff; --ink:#14213a; --muted:#5d6779; --line:#cfd6d8;
+  --accent:#f6c700; --accent-ink:#14213a;
+  --ok:#2f9e6b; --mid:#e0a21a; --bad:#d2483a; --hint:#dfe5ea;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;
+  --tile:min(38px,calc((100vw - 48px)/9));
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1524; --surface:#18213a; --ink:#e9edf5; --muted:#9aa4b8; --line:#2b3654;
+  --accent:#f6c700; --accent-ink:#14213a; --ok:#3bb57d; --mid:#e8ad2a; --bad:#e2604f; --hint:#26304c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1524; --surface:#18213a; --ink:#e9edf5; --muted:#9aa4b8; --line:#2b3654;
+  --accent:#f6c700; --accent-ink:#14213a; --ok:#3bb57d; --mid:#e8ad2a; --bad:#e2604f; --hint:#26304c; color-scheme:dark}
+
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.app{max-width:460px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;gap:14px;padding-block:14px 10px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:baseline;gap:8px}
+.brand h1{font-family:var(--display);font-weight:800;font-size:28px;letter-spacing:-.02em;margin:0;line-height:1}
+.brand h1 span{background:var(--accent);color:var(--accent-ink);padding:0 5px;border-radius:4px}
+.meta{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-variant-numeric:tabular-nums}
+.icons{display:flex;gap:6px}
+.iconbtn{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  font:700 16px var(--body);cursor:pointer;display:grid;place-items:center}
+.iconbtn:focus-visible,.key:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.task{font-size:14px;color:var(--muted);margin:0;text-wrap:balance}
+.task b{color:var(--ink)}
+
+.chain{display:flex;flex-direction:column;align-items:center;gap:0;flex:1}
+.row{display:flex;gap:4px;justify-content:center;padding:3px 0}
+.tile{width:var(--tile);height:var(--tile);border-radius:6px;display:grid;place-items:center;
+  font:800 calc(var(--tile)*.5) var(--display);text-transform:uppercase;border:2px solid var(--line);background:var(--surface);color:var(--ink)}
+.row.given .tile{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.tile.hint{background:var(--hint);border-color:var(--hint)}
+.tile.typed{border-color:var(--ink)}
+.row.active .tile:not(.hint):not(.typed){border-color:var(--muted);border-style:dashed}
+.row.s-ok .tile{background:var(--ok);border-color:var(--ok);color:#fff}
+.row.s-mid .tile{background:var(--mid);border-color:var(--mid);color:#1b1b1b}
+.row.s-bad .tile{background:var(--bad);border-color:var(--bad);color:#fff}
+.link{height:22px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);letter-spacing:.02em}
+.link::before{content:"";width:2px;height:100%;background:var(--line)}
+.link.known{color:var(--ink);font-weight:700}
+.link.known::before{background:var(--accent)}
+.shake{animation:shake .35s}
+.pop .tile{animation:pop .35s}
+@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+@keyframes pop{50%{transform:scale(1.12)}}
+@media (prefers-reduced-motion:reduce){.shake,.pop .tile{animation:none}}
+
+.tools{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 14px;
+  font:700 13px var(--body);cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.45;cursor:default}
+.status{text-align:center;font-size:13px;color:var(--muted);min-height:18px;margin:0}
+
+.kb{display:flex;flex-direction:column;gap:6px;user-select:none}
+.kr{display:flex;gap:4px;justify-content:center}
+.key{flex:1;min-width:0;height:48px;border:0;border-radius:6px;background:var(--hint);color:var(--ink);
+  font:700 15px var(--body);cursor:pointer;padding:0}
+.key.wide{flex:1.6;font-size:12px}
+.key.enter{background:var(--accent);color:var(--accent-ink)}
+
+.result{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.result h2{font-family:var(--display);font-weight:800;font-size:22px;margin:0}
+.emoji{font-size:22px;letter-spacing:2px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stat b{display:block;font-family:var(--display);font-size:24px;font-variant-numeric:tabular-nums}
+.stat span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.compounds{display:flex;flex-wrap:wrap;gap:6px}
+.compounds span{background:var(--hint);border-radius:999px;padding:4px 10px;font-size:13px}
+.next{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.slot{border:1.5px dashed var(--line);border-radius:10px;padding:12px;font-size:12px;color:var(--muted);text-align:center}
+.slot b{display:block;color:var(--ink);font-size:13px;margin-bottom:2px}
+.sharebox{width:100%;font:13px var(--body);border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg);color:var(--ink);resize:none}
+
+.modal{position:fixed;inset:0;background:rgba(10,15,30,.55);display:grid;place-items:center;z-index:20;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.card{background:var(--surface);color:var(--ink);border-radius:16px;max-width:400px;width:100%;padding:20px;display:flex;flex-direction:column;gap:10px;max-height:100%;overflow:auto}
+.card h2{font-family:var(--display);font-weight:800;font-size:22px;margin:0}
+.card p{margin:0;line-height:1.5}
+.ex{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-weight:700}
+.ex i{font-style:normal;color:var(--muted);font-weight:400}
+.legend{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;font-size:14px;align-items:center}
+.sw{width:18px;height:18px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <div class="brand"><h1>Ketten<span>wort</span></h1></div>
+      <div class="meta" id="meta">#1 · Di, 27. Okt</div>
+    </div>
+    <div class="icons">
+      <button class="iconbtn" id="helpBtn" aria-label="Spielregeln">?</button>
+      <button class="iconbtn" id="statsBtn" aria-label="Statistik">▤</button>
+    </div>
+  </header>
+
+  <p class="task" id="task">Verbinde <b>Haus</b> mit <b>Bogen</b>. Jedes Wort bildet mit dem nächsten ein zusammengesetztes Wort.</p>
+
+  <div class="chain" id="chain" aria-live="polite"></div>
+
+  <p class="status" id="status">Tippe das nächste Glied der Kette.</p>
+  <div class="tools" id="tools">
+    <button class="btn" id="hintBtn">Buchstabe aufdecken</button>
+  </div>
+
+  <div class="kb" id="kb"></div>
+  <div id="resultWrap" hidden></div>
+  <footer class="foot"><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a></footer>
+</div>
+
+<div class="modal" id="help" hidden>
+  <div class="card" role="dialog" aria-labelledby="helpT">
+    <h2 id="helpT">So geht's</h2>
+    <p>Jeden Tag gibt es eine neue Kette aus sieben Wörtern. Erstes und letztes Wort stehen fest. Jedes Wort ergibt zusammen mit dem nächsten ein echtes deutsches Kompositum.</p>
+    <div class="ex">Haus <i>→ Haustür →</i> Tür <i>→ Türschloss →</i> Schloss</div>
+    <p>Der Anfangsbuchstabe ist vorgegeben. Jeder Fehlversuch deckt einen weiteren Buchstaben auf.</p>
+    <div class="legend">
+      <div class="sw" style="background:var(--ok)"></div><div>Auf Anhieb gelöst</div>
+      <div class="sw" style="background:var(--mid)"></div><div>Mit 1–2 Fehlern oder Hilfen</div>
+      <div class="sw" style="background:var(--bad)"></div><div>3 oder mehr, bzw. komplett aufgedeckt</div>
+    </div>
+    <p>Um Mitternacht kommt die nächste Kette.</p>
+    <button class="btn primary" id="helpClose">Los geht's</button>
+  </div>
+</div>
+
+<script>
+const CHAINS=[
+ ["Haus","Tür","Schloss","Park","Platz","Regen","Bogen"],
+ ["Schnee","Ball","Spiel","Zeug","Haus","Tier","Arzt"],
+ ["Feuer","Werk","Bank","Konto","Stand","Punkt","Sieg"],
+ ["Kleider","Schrank","Wand","Uhr","Zeit","Reise","Büro"],
+ ["Hand","Werk","Stoff","Wechsel","Geld","Schein","Werfer"],
+ ["Meer","Wasser","Fall","Obst","Korb","Ball","Kleid"],
+ ["Kaffee","Haus","Arzt","Praxis","Test","Fahrt","Wind"],
+ ["Rot","Gold","Fisch","Markt","Platz","Mangel","Ware"],
+ ["Guss","Eisen","Bahn","Hof","Tor","Bogen","Lampe"],
+ ["Apfel","Baum","Stamm","Tisch","Tennis","Platz","Wart"],
+ ["Winter","Reifen","Wechsel","Kurs","Buch","Laden","Tür"],
+ ["Sand","Kasten","Kuchen","Blech","Dach","Boden","See"],
+ ["Nacht","Zug","Führer","Haus","Tür","Rahmen","Programm"],
+ ["Kopf","Kissen","Schlacht","Feld","Weg","Rand","Stein"]
+];
+const LAUNCH=new Date(2026,9,27);
+const U=s=>s.toUpperCase().replace(/ß/g,"SS");
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+             set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+const now=new Date();
+const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+const lk=d=>d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();
+const dayKey=lk(today);
+const num=Math.max(1,Math.round((today-LAUNCH)/864e5)+1);
+const words=CHAINS[(num-1)%CHAINS.length];
+const W=words.map(U);
+
+$("meta").textContent="#"+num+" · "+today.toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"});
+$("task").innerHTML="Verbinde <b>"+words[0]+"</b> mit <b>"+words[6]+"</b>. Jedes Wort bildet mit dem nächsten ein zusammengesetztes Wort.";
+
+let S=store.get("kw-state",null);
+if(!S||S.day!==dayKey){S={day:dayKey,rev:[0,1,1,1,1,1,0],miss:[0,0,0,0,0,0,0],solved:[1,0,0,0,0,0,1],lost:[0,0,0,0,0,0,0],input:"",done:false,counted:false}}
+const save=()=>store.set("kw-state",S);
+const active=()=>{for(let i=1;i<6;i++)if(!S.solved[i])return i;return -1};
+
+function cls(i){
+  if(i===0||i===6)return"given";
+  if(!S.solved[i])return i===active()?"active":"";
+  if(S.lost[i]||S.miss[i]>=3)return"s-bad";
+  return S.miss[i]?"s-mid":"s-ok";
+}
+function compound(a,b){return a+b.toLowerCase()}
+
+function render(pop){
+  const c=$("chain");c.innerHTML="";
+  const a=active();
+  W.forEach((w,i)=>{
+    const row=document.createElement("div");
+    row.className="row "+cls(i)+(pop===i?" pop":"");
+    row.id="r"+i;
+    row.setAttribute("aria-label",S.solved[i]?words[i]:"Verdecktes Wort, "+w.length+" Buchstaben");
+    let typedPos=S.rev[i];
+    for(let p=0;p<w.length;p++){
+      const t=document.createElement("div");t.className="tile";
+      if(S.solved[i]){t.textContent=w[p]}
+      else if(p<S.rev[i]){t.textContent=w[p];t.classList.add("hint")}
+      else if(i===a&&p-typedPos<S.input.length){t.textContent=S.input[p-typedPos];t.classList.add("typed")}
+      row.appendChild(t);
+    }
+    c.appendChild(row);
+    if(i<6){
+      const l=document.createElement("div");
+      const known=S.solved[i]&&S.solved[i+1];
+      l.className="link"+(known?" known":"");
+      l.textContent=known?compound(words[i],words[i+1]):"";
+      c.appendChild(l);
+    }
+  });
+  $("hintBtn").disabled=S.done;
+  if(S.done){$("kb").hidden=true;$("tools").hidden=true;$("status").hidden=true;showResult()}
+}
+
+function msg(t){$("status").textContent=t}
+
+function finishWord(i,lost){
+  S.solved[i]=1;S.lost[i]=lost?1:0;S.input="";
+  if(active()<0){S.done=true;record()}
+  save();render(i);
+}
+function wrong(i,reason){
+  S.miss[i]++;S.rev[i]++;S.input="";
+  if(S.rev[i]>=W[i].length){msg("Aufgedeckt: "+words[i]+".");finishWord(i,true);return}
+  msg(reason);save();render();
+  const r=$("r"+i);if(r){r.classList.add("shake")}
+}
+function press(k){
+  if(S.done)return;
+  const i=active();if(i<0)return;
+  const need=W[i].length-S.rev[i];
+  if(k==="ENTER"){
+    if(S.input.length<need){msg("Noch "+(need-S.input.length)+" Buchstabe(n) fehlen.");return}
+    const guess=W[i].slice(0,S.rev[i])+S.input;
+    if(guess===W[i]){msg(["Sitzt!","Stark.","Genau das.","Passt!"][S.miss[i]%4]);finishWord(i,false)}
+    else wrong(i,"Nicht ganz. Ein Buchstabe mehr ist jetzt aufgedeckt.");
+    return;
+  }
+  if(k==="DEL"){S.input=S.input.slice(0,-1);save();render();return}
+  if(S.input.length<need){S.input+=k;save();render()}
+}
+$("hintBtn").onclick=()=>{const i=active();if(i>=0)wrong(i,"Hilfe genutzt.")};
+
+const rows=["QWERTZUIOPÜ","ASDFGHJKLÖÄ","+YXCVBNM-"];
+rows.forEach(r=>{
+  const d=document.createElement("div");d.className="kr";
+  [...r].forEach(ch=>{
+    const b=document.createElement("button");b.className="key";
+    if(ch==="+"){b.textContent="OK";b.classList.add("wide","enter");b.onclick=()=>press("ENTER");b.setAttribute("aria-label","Eingabe")}
+    else if(ch==="-"){b.textContent="⌫";b.classList.add("wide");b.onclick=()=>press("DEL");b.setAttribute("aria-label","Löschen")}
+    else{b.textContent=ch;b.onclick=()=>press(ch)}
+    d.appendChild(b);
+  });
+  $("kb").appendChild(d);
+});
+document.addEventListener("keydown",e=>{
+  if(!$("help").hidden){if(e.key==="Escape")$("help").hidden=true;return}
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  if(e.key==="Enter"){e.preventDefault();press("ENTER")}
+  else if(e.key==="Backspace")press("DEL");
+  else if(/^[a-zäöüß]$/i.test(e.key)){const k=U(e.key);[...k].forEach(press)}
+});
+
+function record(){
+  if(S.counted)return;S.counted=true;
+  const st=store.get("kw-stats",{played:0,perfect:0,streak:0,best:0,last:null});
+  const y=new Date(today);y.setDate(y.getDate()-1);
+  const yKey=lk(y);
+  st.streak=st.last===yKey?st.streak+1:1;st.best=Math.max(st.best,st.streak);
+  st.played++;if(totalMiss()===0)st.perfect++;st.last=dayKey;
+  store.set("kw-stats",st);
+}
+const totalMiss=()=>S.miss.reduce((a,b)=>a+b,0);
+function emojis(){return W.map((_,i)=>{const c=cls(i);return c==="given"?"🔗":c==="s-ok"?"🟩":c==="s-mid"?"🟨":"🟥"}).join("")}
+function shareText(){const m=totalMiss();return "Kettenwort #"+num+"\n"+emojis()+"\n"+(m===0?"Perfekte Kette!":m+(m===1?" Fehler":" Fehler"))+"\n"+words[0]+" → … → "+words[6]}
+
+function showResult(){
+  const st=store.get("kw-stats",{played:1,perfect:0,streak:1,best:1});
+  const m=totalMiss();
+  const w=$("resultWrap");w.hidden=false;
+  const comps=words.slice(0,6).map((x,i)=>"<span>"+compound(x,words[i+1])+"</span>").join("");
+  w.innerHTML='<section class="result">'+
+   '<h2>'+(m===0?"Perfekte Kette.":m<=3?"Kette steht.":"Geschafft, mit Mühe.")+'</h2>'+
+   '<div class="emoji" aria-label="Ergebnis">'+emojis()+'</div>'+
+   '<div class="compounds">'+comps+'</div>'+
+   '<div class="stats"><div class="stat"><b>'+st.played+'</b><span>Gespielt</span></div>'+
+   '<div class="stat"><b>'+st.streak+'</b><span>Serie</span></div>'+
+   '<div class="stat"><b>'+st.perfect+'</b><span>Perfekt</span></div></div>'+
+   '<button class="btn primary" id="shareBtn">Ergebnis kopieren</button>'+
+   '<textarea class="sharebox" id="shareBox" rows="4" readonly hidden></textarea>'+
+   '<div class="next" id="next"></div>'+
+   '<div class="slot"><b>Kettenwort Plus</b>Archiv aller bisherigen Ketten, Themenpakete und Duell-Modus gegen Freunde. Bald verfügbar.</div>'+
+   '<div class="slot">Anzeigenfläche · Sponsor des Tages</div>'+
+  '</section>';
+  $("shareBtn").onclick=()=>{
+    const t=shareText();
+    const fb=()=>{const b=$("shareBox");b.hidden=false;b.value=t;b.select();$("shareBtn").textContent="Text markiert, jetzt kopieren"};
+    try{navigator.clipboard.writeText(t).then(()=>{$("shareBtn").textContent="Kopiert ✓"},fb)}catch(e){fb()}
+  };
+  tick();
+}
+function tick(){
+  const el=$("next");if(!el)return;
+  const n=new Date(),mid=new Date(n.getFullYear(),n.getMonth(),n.getDate()+1);
+  let s=Math.max(0,Math.floor((mid-n)/1000));
+  const h=String(Math.floor(s/3600)).padStart(2,"0"),m=String(Math.floor(s%3600/60)).padStart(2,"0"),x=String(s%60).padStart(2,"0");
+  el.textContent="Nächste Kette in "+h+":"+m+":"+x;
+}
+setInterval(tick,1000);
+
+$("helpBtn").onclick=()=>{$("help").hidden=false};
+$("helpClose").onclick=()=>{$("help").hidden=true;store.set("kw-seen",1)};
+$("statsBtn").onclick=()=>{
+  const st=store.get("kw-stats",{played:0,perfect:0,streak:0,best:0});
+  msg("Gespielt: "+st.played+" · Serie: "+st.streak+" · Beste Serie: "+st.best+" · Perfekt: "+st.perfect);
+};
+if(!store.get("kw-seen",0))$("help").hidden=false;
+render();
+</script>
+</body>
+</html>
