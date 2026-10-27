@@ -22,7 +22,8 @@
   --ok:#2f9e6b; --mid:#e0a21a; --bad:#d2483a; --hint:#dfe5ea;
   --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
   --body:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;
-  --tile:min(38px,calc((100vw - 48px)/9));
+  --tile:max(28px,min(38px,calc((100vw - 48px)/9),calc((100vh - 440px)/9)));
+  --kbh:calc(3*48px + 2*6px + 20px);
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0f1524; --surface:#18213a; --ink:#e9edf5; --muted:#9aa4b8; --line:#2b3654;
@@ -77,7 +78,12 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .btn:disabled{opacity:.45;cursor:default}
 .status{text-align:center;font-size:13px;color:var(--muted);min-height:18px;margin:0}
 
-.kb{display:flex;flex-direction:column;gap:6px;user-select:none}
+.kb{display:flex;flex-direction:column;gap:6px;user-select:none;position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--bg);border-top:1px solid var(--line);padding:8px max(8px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+.kb .kr{width:100%;max-width:500px;margin:0 auto}
+body.docked .app{padding-bottom:calc(var(--kbh) + env(safe-area-inset-bottom,0px) + 12px)}
+.row{scroll-margin-top:12px;scroll-margin-bottom:calc(var(--kbh) + 90px)}
+@supports (height:100dvh){:root{--tile:max(28px,min(38px,calc((100vw - 48px)/9),calc((100dvh - 440px)/9)))}}
+@media (max-height:700px){.link{height:14px;font-size:11px}.app{gap:10px}.task{font-size:13px}}
 .kr{display:flex;gap:4px;justify-content:center}
 .key{flex:1;min-width:0;height:48px;border:0;border-radius:6px;background:var(--hint);color:var(--ink);
   font:700 15px var(--body);cursor:pointer;padding:0}
@@ -179,15 +185,28 @@ const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
 const lk=d=>d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();
 const dayKey=lk(today);
 const num=Math.max(1,Math.round((today-LAUNCH)/864e5)+1);
-const words=CHAINS[(num-1)%CHAINS.length];
-const W=words.map(U);
+const todayIdx=(num-1)%CHAINS.length;
+let words=CHAINS[todayIdx];
+let W=words.map(U);
+let PRACTICE=false;
+const fresh=()=>({day:dayKey,rev:[0,1,1,1,1,1,0],miss:[0,0,0,0,0,0,0],solved:[1,0,0,0,0,0,1],lost:[0,0,0,0,0,0,0],input:"",done:false,counted:false});
+const setTask=()=>{$("task").innerHTML="Verbinde <b>"+words[0]+"</b> mit <b>"+words[6]+"</b>. Jedes Wort bildet mit dem nächsten ein zusammengesetztes Wort."};
 
 $("meta").textContent="#"+num+" · "+today.toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"});
-$("task").innerHTML="Verbinde <b>"+words[0]+"</b> mit <b>"+words[6]+"</b>. Jedes Wort bildet mit dem nächsten ein zusammengesetztes Wort.";
+setTask();
 
 let S=store.get("kw-state",null);
-if(!S||S.day!==dayKey){S={day:dayKey,rev:[0,1,1,1,1,1,0],miss:[0,0,0,0,0,0,0],solved:[1,0,0,0,0,0,1],lost:[0,0,0,0,0,0,0],input:"",done:false,counted:false}}
-const save=()=>store.set("kw-state",S);
+if(!S||S.day!==dayKey){S=fresh()}
+const save=()=>{if(!PRACTICE)store.set("kw-state",S)};
+function startPractice(){
+  PRACTICE=true;
+  let i;do{i=Math.floor(Math.random()*CHAINS.length)}while(i===todayIdx&&CHAINS.length>1);
+  words=CHAINS[i];W=words.map(U);S=fresh();
+  $("resultWrap").hidden=true;$("resultWrap").innerHTML="";
+  $("kb").hidden=false;$("tools").hidden=false;$("status").hidden=false;
+  $("meta").textContent="Übungskette · zählt nicht für die Serie";
+  setTask();msg("Übungsrunde: Tippe das nächste Glied der Kette.");render();window.scrollTo(0,0);
+}
 const active=()=>{for(let i=1;i<6;i++)if(!S.solved[i])return i;return -1};
 
 function cls(i){
@@ -224,6 +243,8 @@ function render(pop){
     }
   });
   $("hintBtn").disabled=S.done;
+  document.body.classList.toggle("docked",!S.done);
+  const ar=active()>=0?$("r"+active()):null;if(ar&&!S.done)ar.scrollIntoView({block:"nearest"});
   if(S.done){$("kb").hidden=true;$("tools").hidden=true;$("status").hidden=true;showResult()}
 }
 
@@ -279,7 +300,7 @@ document.addEventListener("keydown",e=>{
 });
 
 function record(){
-  if(S.counted)return;S.counted=true;
+  if(PRACTICE||S.counted)return;S.counted=true;
   const st=store.get("kw-stats",{played:0,perfect:0,streak:0,best:0,last:null});
   const y=new Date(today);y.setDate(y.getDate()-1);
   const yKey=lk(y);
@@ -289,7 +310,7 @@ function record(){
 }
 const totalMiss=()=>S.miss.reduce((a,b)=>a+b,0);
 function emojis(){return W.map((_,i)=>{const c=cls(i);return c==="given"?"🔗":c==="s-ok"?"🟩":c==="s-mid"?"🟨":"🟥"}).join("")}
-function shareText(){const m=totalMiss();return "Kettenwort #"+num+"\n"+emojis()+"\n"+(m===0?"Perfekte Kette!":m+(m===1?" Fehler":" Fehler"))+"\n"+words[0]+" → … → "+words[6]}
+function shareText(){const m=totalMiss();return (PRACTICE?"Kettenwort Übung":"Kettenwort #"+num)+"\n"+emojis()+"\n"+(m===0?"Perfekte Kette!":m+(m===1?" Fehler":" Fehler"))+"\n"+words[0]+" → … → "+words[6]}
 
 function showResult(){
   const st=store.get("kw-stats",{played:1,perfect:0,streak:1,best:1});
@@ -306,9 +327,11 @@ function showResult(){
    '<button class="btn primary" id="shareBtn">Ergebnis kopieren</button>'+
    '<textarea class="sharebox" id="shareBox" rows="4" readonly hidden></textarea>'+
    '<div class="next" id="next"></div>'+
+   '<button class="btn" id="practiceBtn">'+(PRACTICE?"Noch eine Übungskette":"Übungskette spielen")+'</button>'+
    '<div class="slot"><b>Kettenwort Plus</b>Archiv aller bisherigen Ketten, Themenpakete und Duell-Modus gegen Freunde. Bald verfügbar.</div>'+
    '<div class="slot">Anzeigenfläche · Sponsor des Tages</div>'+
   '</section>';
+  $("practiceBtn").onclick=startPractice;
   $("shareBtn").onclick=()=>{
     const t=shareText();
     const fb=()=>{const b=$("shareBox");b.hidden=false;b.value=t;b.select();$("shareBtn").textContent="Text markiert, jetzt kopieren"};
