@@ -31,7 +31,8 @@
   --bg:#0f1524; --surface:#18213a; --ink:#e9edf5; --muted:#9aa4b8; --line:#2b3654;
   --accent:#f6c700; --accent-ink:#14213a; --ok:#3bb57d; --mid:#e8ad2a; --bad:#e2604f; --hint:#26304c; color-scheme:dark}
 
-html,body{height:100%}
+html,body{height:100%;touch-action:manipulation;-webkit-text-size-adjust:100%}
+button,.key,.kb,.chain,.tile{touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .app{max-width:460px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;gap:14px;padding-block:14px 10px}
@@ -267,6 +268,8 @@ rows.forEach(r=>{
   });
   $("kb").appendChild(d);
 });
+document.addEventListener("dblclick",e=>e.preventDefault(),{passive:false});
+let lastTouch=0;document.addEventListener("touchend",e=>{const t=Date.now();if(t-lastTouch<350&&e.target.closest("button")){e.preventDefault();e.target.closest("button").click()}lastTouch=t},{passive:false});
 document.addEventListener("keydown",e=>{
   if(!$("help").hidden){if(e.key==="Escape")$("help").hidden=true;return}
   if(e.ctrlKey||e.metaKey||e.altKey)return;
